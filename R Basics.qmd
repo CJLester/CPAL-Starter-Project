@@ -1,0 +1,57 @@
+---
+title: "R Basics"
+format: pdf
+editor: visual
+---
+
+## Declaring Variables
+
+In R, you assign values to variables using the `<-` operator. This is how you store numbers, text, or logical values (TRUE/FALSE).
+
+```{r}
+x <- 10           # numeric
+string <- "CPAL"   # character
+bool <- TRUE      # logical
+```
+
+You can also use `=` to assign values, but `<-` is the preferred style in R.
+
+## Looking Up Functions
+
+Use `?function_name` or `help()` to look up how a function works. Use `??keyword` to search for functions or help topics related to a word.
+
+```{r}
+?mean      # Opens help for the mean() function
+help(sum)  # Opens help for sum()
+??paste # Opens topics related to regression
+```
+
+## Basic Data Types
+
+R has several basic data types. You can use `class()` or `str()` to check them.
+
+```{r}
+class(5)
+str(5)
+class("text")
+class(TRUE)
+class(c(1, 2, 3))
+```
+
+## Reading/Writing Data
+
+Use `read.csv()` to read in data provided in a .csv. Use `write.csv()` to create a .csv from your dataframe.
+
+```{r}
+wic <- read.csv("data/WIC Eligibility Estimates by County and Year.csv")
+write.csv(wic, 'data/WIC Eligibility Estimates Output.csv') 
+```
+
+For Excel sheets, use `read_xlsx()` from `library(readxl)` to read in data. Use `write_xlsx()` to create a .xlsx from your dataframe.
+
+```{r}
+library(readxl)
+dallasCollege <- read_xlsx('data/Housing_Data_for_Export_v3 (1).xlsx')
+```
+
+For Google Sheets, use `read_sheet()` from the library `googlesheets4` to read in data. Use `write_sheet()` to write data to a Google Sheet

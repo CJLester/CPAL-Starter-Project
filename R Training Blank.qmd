@@ -1,0 +1,258 @@
+---
+title: "R Training"
+format: pdf
+editor: visual
+---
+
+# Data Request
+
+-   Among all Dallas College students in the 2023-24 school year, how many and what % reported housing insecurity?
+
+-   Among non dual-credit students only, how many and what % reported housing insecurity?
+
+-   Among student parents only, how many and what % reported housing insecurity?
+
+-   Where do non-dual credit students live who have reported housing insecurity? (output would be a choropleth map - by zip and by census tract - overlaid with the Dallas College locations)
+
+-   Ditto for student parents.
+
+## Reading in Data
+
+Libraries are add ons to Base R - extra functions to have more functionality than what is built in for R
+
+Only use `install.packages()` once for any library. Once a package is installed, call on it using `library()` in order to start using the functions within the library.
+
+```{r}
+#| eval: false
+install.packages("readxl")
+library(readxl)
+```
+
+Read in the excel file using `read_xlsx(path, sheet =, skip =)`
+
+```{r}
+dictionary <- read_xlsx('/Users/anushachowdhury/Downloads/Housing_Data_for_Export_v3 (1).xlsx', sheet = 1, skip = 2)
+```
+
+Be sure to use distinct names for any data or variable. This will help you avoid mistakes and makes for cleaner code.
+
+## Data Exploration
+
+Use `view(data)` to open your dataset, or click on your dataset in the environment panel
+
+```{r}
+
+
+```
+
+Use `head(data)` to display the first few rows of your dataset.
+
+```{r}
+
+```
+
+Use `colnames(data)` or `names(data)` to quickly display the column names of a dataset
+
+```{r}
+
+```
+
+`str(data)` will give a more detailed picture, including column names, data types, and a preview of the values.
+
+```{r}
+
+```
+
+## Cleaning Up Data
+
+Tidyverse is a package that allows for neater code, as well as more SQL-like functionality, but we will explore more deeply into these functions later.
+
+For now, use `slice(row indices)` to take out unnecessary rows in the dictionary dataframe
+
+```{r}
+#| eval: false
+install.packages('tidyverse')
+library(tidyverse)
+dictionarySliced <- dictionary %>% # pipe tells console to run through to the next line
+  slice(1:17)
+
+```
+
+Pipes (`%\>%`) tell the console to pass the result of one function directly to the next. In other words, what is on the left carries through to the right.
+
+## Data Request - Housing Insecurity
+
+#### Among all Dallas College students in the 2023-24 school year, how many and what % reported housing insecurity?
+
+Start by identifying which variables you need to complete the output:
+
+-   Number of housing insecure students
+
+-   Percent of housing insecure students among all Dallas College
+
+    -   Number of housing insecure students
+
+    -   Total students
+
+```{r}
+#| eval: false
+
+totalStudents <- sum(campus$unique_headcount_count)
+totalHI <- sum(campus$housing_insecure_count)
+perHI <- totalHI/totalStudents * 100
+```
+
+Use `percent(data, accuracy = .00..1)` from the scales package to easily format a percentage
+
+```{r}
+#| eval: false
+
+install.packages(scales)
+
+```
+
+You can use `library::function()` as well to call on a library quickly. This is usually used when you're only taking one function from the library for reproducibility.
+
+#### Among non dual-credit students only, how many and what % reported housing insecurity?
+
+Start by identifying which variables you need to complete the output:
+
+-   Number of non dual-credit students
+
+-   Percent of housing insecure students among non-dual credit
+
+    -   Number of non-dual credit housing insecure students
+
+    -   Total non-dual credit students
+
+```{r}
+
+```
+
+#### Among student parents only, how many and what % reported housing insecurity?
+
+Start by identifying which variables you need to complete the output:
+
+-   Number of student parents
+
+-   Percent of housing insecure students among non-dual credit
+
+    -   Number of housing insecure student parents
+
+    -   Total student parents
+
+```{r}
+
+```
+
+#### Where do non-dual credit students live who have reported housing insecurity? (output would be a choropleth map - by zip and by census tract - overlaid with the Dallas College locations)
+
+Start by identifying what you need for the output:
+
+-   Housing insecure non-dual credit students
+
+    -   By zip code
+
+    -   By census tract
+
+-   Dallas College locations
+
+Process your data using tidy functions
+
+```{r}
+#| eval: false
+
+colnames(geo)
+unique(geo$geom_type)
+ndcHI_tracts <- geo %>%
+  filter(geom_type == 'TRACT') %>%
+  select(GEOID, geom_type, non_dual_cred_housing_insecure_count, GEOM_WKT)
+ndcHI_zips
+```
+
+## GIS Data
+
+The different types of geometry you will encounter here are:
+
+-   Points
+
+    -   Single location on map
+
+    -   Lat/lon coordinates
+
+-   Polygons
+
+    -   Closed shape showing area
+
+    -   Made up of multiple points connecting
+
+You will almost always need the `sf` library to work with GIS data
+
+```{r}
+#| eval: false
+
+install.packages('sf')
+library(sf)
+```
+
+#### Geocoding Dallas College locations
+
+Use `geocode(address, method = 'arcgis')` from the tidygeocoder package to create points from addresses. Then, use `st_as_sf()` to turn your regular dataframe to a spatial object ready for mapping.
+
+```{r}
+#| eval: false
+
+college_locations <- data.frame(name = c("Brookhaven College", 
+                                         "Cedar Valley College",
+                                         "Eastfield College", 
+                                         "El Centro College", 
+                                         "Mountain View College", 
+                                         "North Lake College", 
+                                         "Richland College"),
+                                address = c("3939 Valley View Ln, Farmers Branch, TX 75244",
+                                            "3030 N Dallas Ave, Lancaster, TX 75134",
+                                            "3737 Motley Dr, Mesquite, TX 75150",
+                                            "801 Main St, Dallas, TX 75202",
+                                            "4849 W Illinois Ave, Dallas, TX 75211",
+                                            "5001 N MacArthur Blvd, Irving, TX 75038",
+                                            "12800 Abrams Rd, Dallas, TX 75243"))%>%
+  tidygeocoder::geocode(address, method = "arcgis")%>%
+  st_as_sf(coords = c("long", "lat"), crs = 4326) 
+
+ndcHI_tracts <- ndcHI_tracts %>%
+  st_as_sf(wkt = "GEOM_WKT", crs = 4326)
+
+ndcHI_zips
+```
+
+#### Problem Solving: Corrupt Geometry
+
+Use `zctas(year = 2020, class = 'sf')` to get the shapes of all zip codes in the country. Then, use tidy functions to filter them down to your desired area. Join the two dataframes together.
+
+```{r}
+#| eval: false
+
+install.packages('tigris')
+zctas <- tigris::zctas(year = 2020, class = "sf")
+
+```
+
+![](images/clipboard-3246423259.png)
+
+#### Mapping with ggplot
+
+```{r}
+#| eval: false
+
+ggplot(ndcHI_zips) +
+  geom_sf(aes(fill = non_dual_cred_housing_insecure_count)) 
+
+```
+
+## Resources
+
+-   Data Team Notion: <https://www.notion.so/Data-Team-Documentation-1c0aeab28aa6800988b8c48a5fae36e5?pvs=4>
+
+-   Tidyverse Cheat Sheet: <https://posit.co/resources/cheatsheets/>
+
+-   R for Data Science: <https://r4ds.hadley.nz/>
